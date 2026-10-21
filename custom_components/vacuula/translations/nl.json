@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met Vacuula",
+        "description": "Adres van je Vacuula-server. Draait Vacuula als Home Assistant-app, dan werkt de standaardwaarde; anders gebruik je het IP-adres van de machine waarop Vacuula draait (standaard poort 80).",
+        "data": { "host": "Host", "port": "Poort" }
+      }
+    },
+    "error": { "cannot_connect": "Kon geen Vacuula-server bereiken op dit adres." },
+    "abort": { "already_configured": "Deze Vacuula-server is al ingesteld." }
+  },
+  "entity": {
+    "binary_sensor": { "docked": { "name": "Op dock" } },
+    "sensor": {
+      "action": {
+        "name": "Actie",
+        "state": {
+          "invalid": "Geen",
+          "cleaning": "Schoonmaken",
+          "docking": "Naar dock",
+          "diagnostic_test": "Diagnose",
+          "updating_software": "Software-update",
+          "cleaning_standby": "Stand-by"
+        }
+      },
+      "error": { "name": "Fout" }
+    },
+    "select": {
+      "cleaning_mode": {
+        "name": "Schoonmaakmodus",
+        "state": { "eco": "Eco", "turbo": "Turbo", "auto": "Auto", "max": "Max" }
+      },
+      "navigation_mode": {
+        "name": "Navigatiemodus",
+        "state": { "normal": "Normaal", "gentle": "Voorzichtig" }
+      }
+    }
+  },
+  "selector": {
+    "cleaning_mode": { "options": { "eco": "Eco", "turbo": "Turbo", "auto": "Auto", "max": "Max" } },
+    "navigation_mode": { "options": { "normal": "Normaal", "gentle": "Voorzichtig" } }
+  },
+  "services": {
+    "clean_zones": {
+      "name": "Zones schoonmaken",
+      "description": "Maak één of meer benoemde zones van de actieve kaart schoon.",
+      "fields": {
+        "zones": { "name": "Zones", "description": "Zonenamen (of id's), zoals getekend in de Vacuula-app." },
+        "map": { "name": "Kaart", "description": "Kaartnaam of id. Standaard de actieve kaart op de robot." },
+        "mode": { "name": "Schoonmaakmodus", "description": "Overschrijft de schoonmaakmodus-select voor deze ronde." },
+        "navigation_mode": { "name": "Navigatiemodus", "description": "Overschrijft de navigatiemodus-select voor deze ronde." },
+        "nogo_enabled": { "name": "No-go-lijnen respecteren", "description": "Vermijd de no-go-lijnen en -zones van de kaart." }
+      }
+    },
+    "get_zones": {
+      "name": "Zones ophalen",
+      "description": "Geef de kaarten met hun schoonmaakzones en no-go-lijnen terug.",
+      "fields": { "map": { "name": "Kaart", "description": "Alleen deze kaart (naam of id)." } }
+    }
+  }
+}

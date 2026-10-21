@@ -1,0 +1,103 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Vacuula",
+        "description": "Address of your Vacuula server. When Vacuula runs as a Home Assistant app the default works; otherwise use the IP address of the machine running Vacuula (port 80 by default).",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach a Vacuula server at this address."
+    },
+    "abort": {
+      "already_configured": "This Vacuula server is already configured."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "docked": { "name": "Docked" }
+    },
+    "sensor": {
+      "action": {
+        "name": "Action",
+        "state": {
+          "invalid": "None",
+          "cleaning": "Cleaning",
+          "docking": "Docking",
+          "diagnostic_test": "Diagnostic test",
+          "updating_software": "Updating software",
+          "cleaning_standby": "Standby"
+        }
+      },
+      "error": { "name": "Error" }
+    },
+    "select": {
+      "cleaning_mode": {
+        "name": "Cleaning mode",
+        "state": {
+          "eco": "Eco",
+          "turbo": "Turbo",
+          "auto": "Auto",
+          "max": "Max"
+        }
+      },
+      "navigation_mode": {
+        "name": "Navigation mode",
+        "state": {
+          "normal": "Normal",
+          "gentle": "Gentle"
+        }
+      }
+    }
+  },
+  "selector": {
+    "cleaning_mode": {
+      "options": { "eco": "Eco", "turbo": "Turbo", "auto": "Auto", "max": "Max" }
+    },
+    "navigation_mode": {
+      "options": { "normal": "Normal", "gentle": "Gentle" }
+    }
+  },
+  "services": {
+    "clean_zones": {
+      "name": "Clean zones",
+      "description": "Clean one or more named zones of the active map.",
+      "fields": {
+        "zones": {
+          "name": "Zones",
+          "description": "Zone names (or ids), as drawn in the Vacuula app."
+        },
+        "map": {
+          "name": "Map",
+          "description": "Map name or id. Defaults to the active map on the robot."
+        },
+        "mode": {
+          "name": "Cleaning mode",
+          "description": "Overrides the cleaning mode select for this run."
+        },
+        "navigation_mode": {
+          "name": "Navigation mode",
+          "description": "Overrides the navigation mode select for this run."
+        },
+        "nogo_enabled": {
+          "name": "Respect no-go lines",
+          "description": "Avoid the no-go lines and zones of the map."
+        }
+      }
+    },
+    "get_zones": {
+      "name": "Get zones",
+      "description": "Return the maps with their cleaning zones and no-go lines.",
+      "fields": {
+        "map": {
+          "name": "Map",
+          "description": "Only this map (name or id)."
+        }
+      }
+    }
+  }
+}

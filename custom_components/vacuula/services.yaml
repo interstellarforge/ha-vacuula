@@ -1,0 +1,46 @@
+clean_zones:
+  target:
+    entity:
+      integration: vacuula
+      domain: vacuum
+  fields:
+    zones:
+      required: true
+      example: '["Kitchen", "Hallway"]'
+      selector:
+        object:
+    map:
+      example: "Ground floor"
+      selector:
+        text:
+    mode:
+      selector:
+        select:
+          translation_key: cleaning_mode
+          options:
+            - eco
+            - turbo
+            - auto
+            - max
+    navigation_mode:
+      selector:
+        select:
+          translation_key: navigation_mode
+          options:
+            - normal
+            - gentle
+    nogo_enabled:
+      default: true
+      selector:
+        boolean:
+
+get_zones:
+  target:
+    entity:
+      integration: vacuula
+      domain: vacuum
+  fields:
+    map:
+      example: "Ground floor"
+      selector:
+        text:
