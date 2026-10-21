@@ -19,7 +19,15 @@
   },
   "entity": {
     "binary_sensor": {
-      "docked": { "name": "Docked" }
+      "docked": {
+        "name": "Docked"
+      },
+      "last_run_complete": {
+        "name": "Last run complete"
+      },
+      "quickboost": {
+        "name": "Quick boost"
+      }
     },
     "sensor": {
       "action": {
@@ -33,7 +41,30 @@
           "cleaning_standby": "Standby"
         }
       },
-      "error": { "name": "Error" }
+      "error": {
+        "name": "Error"
+      },
+      "last_run_area": {
+        "name": "Last run area"
+      },
+      "last_run_duration": {
+        "name": "Last run duration"
+      },
+      "last_run_battery_used": {
+        "name": "Last run battery used"
+      },
+      "last_run_end": {
+        "name": "Last run finished"
+      },
+      "last_run_started_by": {
+        "name": "Last run started by"
+      },
+      "run_count": {
+        "name": "Runs"
+      },
+      "total_area": {
+        "name": "Total cleaned area"
+      }
     },
     "select": {
       "cleaning_mode": {
@@ -51,15 +82,50 @@
           "normal": "Normal",
           "gentle": "Gentle"
         }
+      },
+      "zone": {
+        "name": "Zone"
+      },
+      "language": {
+        "name": "Robot language"
+      }
+    },
+    "switch": {
+      "force_floorplan": {
+        "name": "Force floor plan"
+      }
+    },
+    "button": {
+      "clean_zone": {
+        "name": "Clean selected zone"
+      },
+      "refresh_data": {
+        "name": "Refresh runs and maps"
+      }
+    },
+    "image": {
+      "map": {
+        "name": "Map"
+      },
+      "last_run_map": {
+        "name": "Last run"
       }
     }
   },
   "selector": {
     "cleaning_mode": {
-      "options": { "eco": "Eco", "turbo": "Turbo", "auto": "Auto", "max": "Max" }
+      "options": {
+        "eco": "Eco",
+        "turbo": "Turbo",
+        "auto": "Auto",
+        "max": "Max"
+      }
     },
     "navigation_mode": {
-      "options": { "normal": "Normal", "gentle": "Gentle" }
+      "options": {
+        "normal": "Normal",
+        "gentle": "Gentle"
+      }
     }
   },
   "services": {
@@ -96,6 +162,40 @@
         "map": {
           "name": "Map",
           "description": "Only this map (name or id)."
+        }
+      }
+    },
+    "get_runs": {
+      "name": "Get runs",
+      "description": "Return the most recent cleanings with area, duration and battery use.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Maximum number of runs."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Get schedule",
+      "description": "Return the robot's schedule as the robot reports it."
+    },
+    "set_schedule_event": {
+      "name": "Set schedule event",
+      "description": "Add or update a schedule event (raw robot format, see get_schedule).",
+      "fields": {
+        "event": {
+          "name": "Event",
+          "description": "The event object to send to the robot."
+        }
+      }
+    },
+    "delete_schedule_event": {
+      "name": "Delete schedule event",
+      "description": "Remove a schedule event by id.",
+      "fields": {
+        "id": {
+          "name": "Event id",
+          "description": "Id of the event, from get_schedule."
         }
       }
     }

@@ -44,3 +44,44 @@ get_zones:
       example: "Ground floor"
       selector:
         text:
+
+get_runs:
+  target:
+    entity:
+      integration: vacuula
+      domain: vacuum
+  fields:
+    limit:
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 200
+
+get_schedule:
+  target:
+    entity:
+      integration: vacuula
+      domain: vacuum
+
+set_schedule_event:
+  target:
+    entity:
+      integration: vacuula
+      domain: vacuum
+  fields:
+    event:
+      required: true
+      selector:
+        object:
+
+delete_schedule_event:
+  target:
+    entity:
+      integration: vacuula
+      domain: vacuum
+  fields:
+    id:
+      required: true
+      selector:
+        text:

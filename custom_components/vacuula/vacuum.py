@@ -24,7 +24,11 @@ from .const import (
     CLEANING_MODES,
     NAVIGATION_MODES,
     SERVICE_CLEAN_ZONES,
+    SERVICE_DELETE_SCHEDULE_EVENT,
+    SERVICE_GET_RUNS,
+    SERVICE_GET_SCHEDULE,
     SERVICE_GET_ZONES,
+    SERVICE_SET_SCHEDULE_EVENT,
 )
 from .coordinator import RobotData, VacuulaConfigEntry, VacuulaCoordinator
 from .entity import VacuulaEntity, async_add_robot_entities
@@ -56,6 +60,30 @@ async def async_setup_entry(
         {vol.Optional("map"): cv.string},
         "async_get_zones",
         supports_response=SupportsResponse.ONLY,
+    )
+    platform.async_register_entity_service(
+        SERVICE_GET_RUNS,
+        {vol.Optional("limit", default=10): vol.All(vol.Coerce(int), vol.Range(min=1, max=200))},
+        "async_get_runs",
+        supports_response=SupportsResponse.ONLY,
+    )
+    platform.async_register_entity_service(
+        SERVICE_GET_SCHEDULE,
+        {},
+        "async_get_schedule",
+        supports_response=SupportsResponse.ONLY,
+    )
+    platform.async_register_entity_service(
+        SERVICE_SET_SCHEDULE_EVENT,
+        {vol.Required("event"): dict},
+        "async_set_schedule_event",
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    platform.async_register_entity_service(
+        SERVICE_DELETE_SCHEDULE_EVENT,
+        {vol.Required("id"): cv.string},
+        "async_delete_schedule_event",
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
 
@@ -159,3 +187,23 @@ class VacuulaVacuum(VacuulaEntity, StateVacuumEntity):
 
     async def async_get_zones(self, map: str | None = None) -> dict[str, Any]:  # noqa: A002
         return await self.coordinator.async_get_zones(self.serial, map)
+
+    async def async_get_runs(self, limit: int = 10) -> dict[str, Any]:
+        return await self.coordinator.async_get_runs(self.serial, limit)
+
+    async def async_get_schedule(self) -> dict[str, Any]:
+        return {"schedule": await self.coordinator.async_get_schedule(self.serial)}
+
+    async def async_set_schedule_event(self, event: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "schedule": await self.coordinator.async_set_schedule_event(
+                self.serial, event
+            )
+        }
+
+    async def async_delete_schedule_event(self, id: str) -> dict[str, Any]:  # noqa: A002
+        return {
+            "schedule": await self.coordinator.async_delete_schedule_event(
+                self.serial, id
+            )
+        }

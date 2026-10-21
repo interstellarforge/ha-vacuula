@@ -85,6 +85,18 @@ class VacuulaClient:
         """GET /api/robot/<serial>/maps (floorplans shown in the app)."""
         return await self._request("GET", f"/robot/{serial}/maps")
 
+    async def get_map(self, serial: str, map_id: str) -> dict[str, Any]:
+        """GET /api/robot/<serial>/maps/<id> (floor grid as run-length data)."""
+        return await self._request("GET", f"/robot/{serial}/maps/{map_id}")
+
+    async def get_runs(self, serial: str) -> list[dict[str, Any]]:
+        """GET /api/robot/<serial>/runs (one row per finished cleaning)."""
+        return await self._request("GET", f"/robot/{serial}/runs")
+
+    async def get_run(self, serial: str, run_id: str) -> dict[str, Any]:
+        """GET /api/robot/<serial>/run/<id> (the driven path of one run)."""
+        return await self._request("GET", f"/robot/{serial}/run/{run_id}")
+
     async def get_boundaries(
         self, serial: str, map_id: str
     ) -> list[dict[str, Any]]:

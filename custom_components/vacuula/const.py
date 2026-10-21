@@ -37,5 +37,21 @@ ABILITY_CANCEL = "cleaning.cancel"
 ABILITY_RETURN = "navigation.return_to_base"
 ABILITY_FIND_ME = "utilities.find_me"
 
+ABILITY_SCHEDULE_SHOW = "scheduling.show"
+ABILITY_SCHEDULE_UPDATE = "scheduling.update"
+ABILITY_SCHEDULE_DELETE = "scheduling.delete"
+ABILITY_CLEANING_OPTIONS = "settings.cleaning_options"
+ABILITY_SET_CLEANING_OPTIONS = "settings.set_cleaning_options"
+ABILITY_ROBOT_LANGUAGE = "settings.robot_language"
+ABILITY_SET_ROBOT_LANGUAGE = "settings.set_robot_language"
+
+# Runs, maps, zones and settings change rarely: refresh them every few minutes
+# and right after a cleaning has ended, not on every poll.
+EXTRAS_INTERVAL = timedelta(minutes=10)
+
 SERVICE_CLEAN_ZONES = "clean_zones"
 SERVICE_GET_ZONES = "get_zones"
+SERVICE_GET_RUNS = "get_runs"
+SERVICE_GET_SCHEDULE = "get_schedule"
+SERVICE_SET_SCHEDULE_EVENT = "set_schedule_event"
+SERVICE_DELETE_SCHEDULE_EVENT = "delete_schedule_event"

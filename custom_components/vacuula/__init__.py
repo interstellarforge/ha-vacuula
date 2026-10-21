@@ -14,6 +14,9 @@ PLATFORMS = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.SELECT,
+    Platform.SWITCH,
+    Platform.BUTTON,
+    Platform.IMAGE,
 ]
 
 

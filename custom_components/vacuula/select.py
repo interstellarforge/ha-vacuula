@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -23,6 +24,8 @@ async def async_setup_entry(
         lambda c, s: [
             ModeSelect(c, s, "cleaning_mode", "mode", CLEANING_MODES),
             ModeSelect(c, s, "navigation_mode", "navigation_mode", NAVIGATION_MODES),
+            ZoneSelect(c, s),
+            LanguageSelect(c, s),
         ],
     )
 
@@ -62,3 +65,59 @@ class ModeSelect(VacuulaEntity, SelectEntity, RestoreEntity):
     async def async_select_option(self, option: str) -> None:
         self.coordinator.cleaning_settings[self.serial][self._setting] = option
         self.async_write_ha_state()
+
+
+class ZoneSelect(VacuulaEntity, SelectEntity):
+    """Zones of the active map; the 'clean zone' button cleans the chosen one."""
+
+    _attr_translation_key = "zone"
+
+    def __init__(self, coordinator: VacuulaCoordinator, serial: str) -> None:
+        super().__init__(coordinator, serial)
+        self._attr_unique_id = f"{serial}_zone"
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.last_update_success and bool(self.robot.zones)
+
+    @property
+    def options(self) -> list[str]:
+        return list(self.robot.zones)
+
+    @property
+    def current_option(self) -> str | None:
+        zones = self.robot.zones
+        chosen = self.coordinator.selected_zone.get(self.serial)
+        if chosen in zones:
+            return chosen
+        return zones[0] if zones else None
+
+    async def async_select_option(self, option: str) -> None:
+        self.coordinator.selected_zone[self.serial] = option
+        self.async_write_ha_state()
+
+
+class LanguageSelect(VacuulaEntity, SelectEntity):
+    """Voice/message language of the robot itself (settings.robot_language)."""
+
+    _attr_translation_key = "language"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: VacuulaCoordinator, serial: str) -> None:
+        super().__init__(coordinator, serial)
+        self._attr_unique_id = f"{serial}_language"
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.robot.languages)
+
+    @property
+    def options(self) -> list[str]:
+        return list(self.robot.languages)
+
+    @property
+    def current_option(self) -> str | None:
+        return self.robot.language if self.robot.language in self.robot.languages else None
+
+    async def async_select_option(self, option: str) -> None:
+        await self.coordinator.async_set_language(self.serial, option)

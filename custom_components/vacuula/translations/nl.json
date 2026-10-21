@@ -4,14 +4,31 @@
       "user": {
         "title": "Verbinden met Vacuula",
         "description": "Adres van je Vacuula-server. Draait Vacuula als Home Assistant-app, dan werkt de standaardwaarde; anders gebruik je het IP-adres van de machine waarop Vacuula draait (standaard poort 80).",
-        "data": { "host": "Host", "port": "Poort" }
+        "data": {
+          "host": "Host",
+          "port": "Poort"
+        }
       }
     },
-    "error": { "cannot_connect": "Kon geen Vacuula-server bereiken op dit adres." },
-    "abort": { "already_configured": "Deze Vacuula-server is al ingesteld." }
+    "error": {
+      "cannot_connect": "Kon geen Vacuula-server bereiken op dit adres."
+    },
+    "abort": {
+      "already_configured": "Deze Vacuula-server is al ingesteld."
+    }
   },
   "entity": {
-    "binary_sensor": { "docked": { "name": "Op dock" } },
+    "binary_sensor": {
+      "docked": {
+        "name": "Op dock"
+      },
+      "last_run_complete": {
+        "name": "Laatste ronde compleet"
+      },
+      "quickboost": {
+        "name": "Snellaadmodus"
+      }
+    },
     "sensor": {
       "action": {
         "name": "Actie",
@@ -24,39 +41,163 @@
           "cleaning_standby": "Stand-by"
         }
       },
-      "error": { "name": "Fout" }
+      "error": {
+        "name": "Fout"
+      },
+      "last_run_area": {
+        "name": "Oppervlak laatste ronde"
+      },
+      "last_run_duration": {
+        "name": "Duur laatste ronde"
+      },
+      "last_run_battery_used": {
+        "name": "Accuverbruik laatste ronde"
+      },
+      "last_run_end": {
+        "name": "Laatste ronde klaar"
+      },
+      "last_run_started_by": {
+        "name": "Laatste ronde gestart door"
+      },
+      "run_count": {
+        "name": "Rondes"
+      },
+      "total_area": {
+        "name": "Totaal schoongemaakt oppervlak"
+      }
     },
     "select": {
       "cleaning_mode": {
         "name": "Schoonmaakmodus",
-        "state": { "eco": "Eco", "turbo": "Turbo", "auto": "Auto", "max": "Max" }
+        "state": {
+          "eco": "Eco",
+          "turbo": "Turbo",
+          "auto": "Auto",
+          "max": "Max"
+        }
       },
       "navigation_mode": {
         "name": "Navigatiemodus",
-        "state": { "normal": "Normaal", "gentle": "Voorzichtig" }
+        "state": {
+          "normal": "Normaal",
+          "gentle": "Voorzichtig"
+        }
+      },
+      "zone": {
+        "name": "Zone"
+      },
+      "language": {
+        "name": "Taal robot"
+      }
+    },
+    "switch": {
+      "force_floorplan": {
+        "name": "Plattegrond afdwingen"
+      }
+    },
+    "button": {
+      "clean_zone": {
+        "name": "Geselecteerde zone schoonmaken"
+      },
+      "refresh_data": {
+        "name": "Rondes en kaarten verversen"
+      }
+    },
+    "image": {
+      "map": {
+        "name": "Plattegrond"
+      },
+      "last_run_map": {
+        "name": "Laatste ronde"
       }
     }
   },
   "selector": {
-    "cleaning_mode": { "options": { "eco": "Eco", "turbo": "Turbo", "auto": "Auto", "max": "Max" } },
-    "navigation_mode": { "options": { "normal": "Normaal", "gentle": "Voorzichtig" } }
+    "cleaning_mode": {
+      "options": {
+        "eco": "Eco",
+        "turbo": "Turbo",
+        "auto": "Auto",
+        "max": "Max"
+      }
+    },
+    "navigation_mode": {
+      "options": {
+        "normal": "Normaal",
+        "gentle": "Voorzichtig"
+      }
+    }
   },
   "services": {
     "clean_zones": {
       "name": "Zones schoonmaken",
       "description": "Maak één of meer benoemde zones van de actieve kaart schoon.",
       "fields": {
-        "zones": { "name": "Zones", "description": "Zonenamen (of id's), zoals getekend in de Vacuula-app." },
-        "map": { "name": "Kaart", "description": "Kaartnaam of id. Standaard de actieve kaart op de robot." },
-        "mode": { "name": "Schoonmaakmodus", "description": "Overschrijft de schoonmaakmodus-select voor deze ronde." },
-        "navigation_mode": { "name": "Navigatiemodus", "description": "Overschrijft de navigatiemodus-select voor deze ronde." },
-        "nogo_enabled": { "name": "No-go-lijnen respecteren", "description": "Vermijd de no-go-lijnen en -zones van de kaart." }
+        "zones": {
+          "name": "Zones",
+          "description": "Zonenamen (of id's), zoals getekend in de Vacuula-app."
+        },
+        "map": {
+          "name": "Kaart",
+          "description": "Kaartnaam of id. Standaard de actieve kaart op de robot."
+        },
+        "mode": {
+          "name": "Schoonmaakmodus",
+          "description": "Overschrijft de schoonmaakmodus-select voor deze ronde."
+        },
+        "navigation_mode": {
+          "name": "Navigatiemodus",
+          "description": "Overschrijft de navigatiemodus-select voor deze ronde."
+        },
+        "nogo_enabled": {
+          "name": "No-go-lijnen respecteren",
+          "description": "Vermijd de no-go-lijnen en -zones van de kaart."
+        }
       }
     },
     "get_zones": {
       "name": "Zones ophalen",
       "description": "Geef de kaarten met hun schoonmaakzones en no-go-lijnen terug.",
-      "fields": { "map": { "name": "Kaart", "description": "Alleen deze kaart (naam of id)." } }
+      "fields": {
+        "map": {
+          "name": "Kaart",
+          "description": "Alleen deze kaart (naam of id)."
+        }
+      }
+    },
+    "get_runs": {
+      "name": "Rondes ophalen",
+      "description": "Geef de laatste schoonmaakrondes terug met oppervlak, duur en accuverbruik.",
+      "fields": {
+        "limit": {
+          "name": "Aantal",
+          "description": "Maximaal aantal rondes."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Schema ophalen",
+      "description": "Geef het schema van de robot terug zoals de robot het meldt."
+    },
+    "set_schedule_event": {
+      "name": "Schema-item opslaan",
+      "description": "Voeg een schema-item toe of werk het bij (ruw robotformaat, zie get_schedule).",
+      "fields": {
+        "event": {
+          "name": "Item",
+          "description": "Het item dat naar de robot gaat."
+        }
+      }
+    },
+    "delete_schedule_event": {
+      "name": "Schema-item verwijderen",
+      "description": "Verwijder een schema-item op id.",
+      "fields": {
+        "id": {
+          "name": "Item-id",
+          "description": "Id van het item, uit get_schedule."
+        }
+      }
     }
   }
 }

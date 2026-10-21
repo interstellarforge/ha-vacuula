@@ -22,7 +22,13 @@ async def async_setup_entry(
     async_add_robot_entities(
         entry,
         async_add_entities,
-        lambda c, s: [ChargingSensor(c, s), DockedSensor(c, s), ConnectedSensor(c, s)],
+        lambda c, s: [
+            ChargingSensor(c, s),
+            DockedSensor(c, s),
+            ConnectedSensor(c, s),
+            LastRunCompleteSensor(c, s),
+            QuickboostSensor(c, s),
+        ],
     )
 
 
@@ -71,3 +77,40 @@ class ConnectedSensor(VacuulaEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.robot.connected
+
+
+class LastRunCompleteSensor(VacuulaEntity, BinarySensorEntity):
+    """Whether the last cleaning covered everything it set out to clean."""
+
+    _attr_translation_key = "last_run_complete"
+
+    def __init__(self, coordinator: VacuulaCoordinator, serial: str) -> None:
+        super().__init__(coordinator, serial)
+        self._attr_unique_id = f"{serial}_last_run_complete"
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.last_update_success and self.serial in (
+            self.coordinator.data or {}
+        )
+
+    @property
+    def is_on(self) -> bool | None:
+        value = (self.robot.last_run or {}).get("complete")
+        return None if value is None else bool(value)
+
+
+class QuickboostSensor(VacuulaEntity, BinarySensorEntity):
+    """The robot is quick-charging between cleaning rounds."""
+
+    _attr_translation_key = "quickboost"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: VacuulaCoordinator, serial: str) -> None:
+        super().__init__(coordinator, serial)
+        self._attr_unique_id = f"{serial}_quickboost"
+
+    @property
+    def is_on(self) -> bool | None:
+        value = self.robot.details.get("is_quickboost")
+        return None if value is None else bool(value)

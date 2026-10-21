@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import logging
+import time
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -23,10 +24,19 @@ from .const import (
     ABILITY_STATE,
     DEFAULT_CLEANING_MODE,
     DEFAULT_NAVIGATION_MODE,
+    ABILITY_CLEANING_OPTIONS,
+    ABILITY_ROBOT_LANGUAGE,
+    ABILITY_SCHEDULE_DELETE,
+    ABILITY_SCHEDULE_SHOW,
+    ABILITY_SCHEDULE_UPDATE,
+    ABILITY_SET_CLEANING_OPTIONS,
+    ABILITY_SET_ROBOT_LANGUAGE,
     DOMAIN,
+    EXTRAS_INTERVAL,
     POLL_INTERVAL,
     ROBOT_TYPE_GEN4,
 )
+from .runs import end_key, summarize_run, to_json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +56,21 @@ class RobotData:
     errors: list[dict[str, Any]] = field(default_factory=list)
     available_commands: dict[str, bool] = field(default_factory=dict)
     details: dict[str, Any] = field(default_factory=dict)
+    autonomy_states: dict[str, Any] = field(default_factory=dict)
+    # Slow-changing data (see EXTRAS_INTERVAL)
+    runs: list[dict[str, Any]] = field(default_factory=list)  # newest first
+    maps: list[dict[str, Any]] = field(default_factory=list)
+    active_map: dict[str, Any] | None = None
+    zones: list[str] = field(default_factory=list)
+    force_floorplan: bool | None = None
+    language: str | None = None
+    languages: list[str] = field(default_factory=list)
+    extras_at: float | None = None  # time.monotonic() of the last refresh
+    extras_dirty: int = 0  # extra refreshes still wanted after a cleaning
+
+    @property
+    def last_run(self) -> dict[str, Any] | None:
+        return self.runs[0] if self.runs else None
 
     def apply_state(self, body: dict[str, Any]) -> None:
         """Merge a robot state body (state.show response or peer.state event)."""
@@ -54,6 +79,7 @@ class RobotData:
         self.errors = body.get("errors") or []
         self.available_commands = body.get("available_commands", {}) or {}
         self.details = body.get("details", {}) or {}
+        self.autonomy_states = body.get("autonomy_states", {}) or {}
 
 
 class VacuulaCoordinator(DataUpdateCoordinator[dict[str, RobotData]]):
@@ -76,6 +102,7 @@ class VacuulaCoordinator(DataUpdateCoordinator[dict[str, RobotData]]):
         )
         self.client = client
         self.cleaning_settings: dict[str, dict[str, str]] = {}
+        self.selected_zone: dict[str, str] = {}
         self._streams: dict[str, asyncio.Task] = {}
         self._events_task: asyncio.Task | None = None
 
@@ -98,6 +125,8 @@ class VacuulaCoordinator(DataUpdateCoordinator[dict[str, RobotData]]):
             robot.connected = bool(info.get("connected"))
             if robot.connected:
                 await self._refresh_state(robot)
+            if self._extras_due(robot):
+                await self._refresh_extras(robot)
             data[serial] = robot
             self.cleaning_settings.setdefault(
                 serial,
@@ -119,6 +148,87 @@ class VacuulaCoordinator(DataUpdateCoordinator[dict[str, RobotData]]):
         body = result.get("body")
         if isinstance(body, dict):
             robot.apply_state(body)
+
+    # ---- slow data: runs, maps, zones, settings --------------------------
+
+    def _extras_due(self, robot: RobotData) -> bool:
+        if robot.extras_at is None:
+            return True
+        if robot.extras_dirty > 0:
+            robot.extras_dirty -= 1
+            return True
+        return time.monotonic() - robot.extras_at >= EXTRAS_INTERVAL.total_seconds()
+
+    async def _refresh_extras(self, robot: RobotData) -> None:
+        """Reload runs, maps/zones and settings. Never raises."""
+        serial = robot.serial
+        robot.extras_at = time.monotonic()
+
+        try:
+            rows = await self.client.get_runs(serial)
+        except VacuulaError as err:
+            _LOGGER.debug("Loading runs of %s failed: %s", serial, err)
+        else:
+            if isinstance(rows, list):
+                summaries = [summarize_run(r) for r in rows if isinstance(r, dict)]
+                summaries.sort(key=end_key, reverse=True)
+                robot.runs = summaries
+
+        try:
+            maps = await self.client.get_maps(serial)
+        except VacuulaError as err:
+            _LOGGER.debug("Loading maps of %s failed: %s", serial, err)
+        else:
+            if isinstance(maps, list):
+                robot.maps = [m for m in maps if isinstance(m, dict)]
+                robot.active_map = next(
+                    (m for m in robot.maps if m.get("promoted")), None
+                )
+                robot.zones = []
+                if robot.active_map is not None:
+                    try:
+                        boundaries = await self.client.get_boundaries(
+                            serial, robot.active_map["id"]
+                        )
+                    except (VacuulaError, KeyError) as err:
+                        _LOGGER.debug("Loading zones of %s failed: %s", serial, err)
+                    else:
+                        if isinstance(boundaries, list):
+                            robot.zones = [
+                                str(b.get("name"))
+                                for b in boundaries
+                                if isinstance(b, dict)
+                                and b.get("function") == "cleaning"
+                                and b.get("enabled", True)
+                                and b.get("name")
+                            ]
+
+        if robot.connected:
+            body = await self._settings_body(serial, ABILITY_CLEANING_OPTIONS)
+            if body is not None and "force_floorplan" in body:
+                robot.force_floorplan = bool(body["force_floorplan"])
+            body = await self._settings_body(serial, ABILITY_ROBOT_LANGUAGE)
+            if body is not None:
+                robot.language = body.get("language")
+                langs = body.get("available_languages")
+                robot.languages = list(langs) if isinstance(langs, list) else []
+
+    async def _settings_body(self, serial: str, ability: str) -> dict[str, Any] | None:
+        try:
+            result = await self.client.command(serial, {"ability": ability})
+        except VacuulaError as err:
+            _LOGGER.debug("%s failed for %s: %s", ability, serial, err)
+            return None
+        body = result.get("body")
+        return body if isinstance(body, dict) else None
+
+    async def async_refresh_extras(self, serial: str) -> None:
+        """Reload the slow data of one robot now (button, after a cleaning)."""
+        robot = (self.data or {}).get(serial)
+        if robot is None:
+            return
+        await self._refresh_extras(robot)
+        self.async_set_updated_data(self.data)
 
     # ---- live updates ----------------------------------------------------
 
@@ -171,9 +281,19 @@ class VacuulaCoordinator(DataUpdateCoordinator[dict[str, RobotData]]):
             robot = (self.data or {}).get(serial)
             if robot is None or not isinstance(body, dict):
                 return
+            previous = robot.state
             robot.connected = True
             robot.apply_state(body)
             self.async_set_updated_data(self.data)
+            if previous in ("busy", "paused") and robot.state == "idle":
+                # A cleaning just ended: the robot uploads its run a moment
+                # later, so look now and once more on the next two polls.
+                robot.extras_dirty = 2
+                self.config_entry.async_create_background_task(
+                    self.hass,
+                    self.async_refresh_extras(serial),
+                    f"{DOMAIN}_extras_{serial}",
+                )
 
         await self._run_stream(f"/robot/{serial}/connect", handler, on_open=serial)
 
@@ -368,3 +488,75 @@ class VacuulaCoordinator(DataUpdateCoordinator[dict[str, RobotData]]):
                 }
             )
         return {"maps": result}
+
+    # ---- settings, schedule, maps ----------------------------------------
+
+    async def async_set_force_floorplan(self, serial: str, value: bool) -> None:
+        await self.async_command(
+            serial,
+            {"ability": ABILITY_SET_CLEANING_OPTIONS, "force_floorplan": value},
+            refresh=False,
+        )
+        robot = (self.data or {}).get(serial)
+        if robot is not None:
+            robot.force_floorplan = value
+            self.async_set_updated_data(self.data)
+
+    async def async_set_language(self, serial: str, language: str) -> None:
+        await self.async_command(
+            serial,
+            {"ability": ABILITY_SET_ROBOT_LANGUAGE, "language": language},
+            refresh=False,
+        )
+        robot = (self.data or {}).get(serial)
+        if robot is not None:
+            robot.language = language
+            self.async_set_updated_data(self.data)
+
+    async def async_get_schedule(self, serial: str) -> Any:
+        """The robot's schedule exactly as the robot reports it."""
+        result = await self.async_command(
+            serial, {"ability": ABILITY_SCHEDULE_SHOW}, refresh=False
+        )
+        return result.get("body")
+
+    async def async_set_schedule_event(
+        self, serial: str, event: dict[str, Any]
+    ) -> Any:
+        result = await self.async_command(
+            serial,
+            {"ability": ABILITY_SCHEDULE_UPDATE, "event": event},
+            refresh=False,
+        )
+        return result.get("body")
+
+    async def async_delete_schedule_event(self, serial: str, event_id: str) -> Any:
+        result = await self.async_command(
+            serial,
+            {"ability": ABILITY_SCHEDULE_DELETE, "id": event_id},
+            refresh=False,
+        )
+        return result.get("body")
+
+    async def async_get_runs(self, serial: str, limit: int) -> dict[str, Any]:
+        robot = (self.data or {}).get(serial)
+        runs = robot.runs[:limit] if robot else []
+        return {"runs": [to_json(r) for r in runs]}
+
+    async def async_fetch_map(self, serial: str, map_id: str) -> dict[str, Any] | None:
+        try:
+            result = await self.client.get_map(serial, map_id)
+        except VacuulaError as err:
+            _LOGGER.debug("Loading map %s failed: %s", map_id, err)
+            return None
+        return result if isinstance(result, dict) else None
+
+    async def async_fetch_run_path(
+        self, serial: str, run_id: str
+    ) -> dict[str, Any] | None:
+        try:
+            result = await self.client.get_run(serial, run_id)
+        except VacuulaError as err:
+            _LOGGER.debug("Loading run path %s failed: %s", run_id, err)
+            return None
+        return result if isinstance(result, dict) else None
